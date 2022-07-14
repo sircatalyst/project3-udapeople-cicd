@@ -88,9 +88,11 @@ jobs:
       - run:
           name: Build backend
           command: |
-              cd backend
-              npm install
-              npm audit --audit-level=critical
+            cd backend
+            npm install
+            npm audit fix --force --audit-level=critical
+            npm audit fix --force --audit-level=critical
+            npm audit --audit-level=critical
 
 workflows:
   default:

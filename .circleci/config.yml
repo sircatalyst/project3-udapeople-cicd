@@ -1,15 +1,15 @@
 version: 2.1
 
 orbs: 
-  hello-world: sample-orbs/hello-world@0.0.10
+  slack: circleci/slack@4.10.1
 
 commands:
-    notify_on_failure:
-        steps:
-        - slack/notify:
-            event: fail
-            channel: cicd-pipeline
-            template: basic_fail_1
+  notify_on_failure:
+    steps:
+      - slack/notify:
+          event: fail
+          channel: cicd-pipeline
+          template: basic_fail_1
 
 jobs:
   build-frontend:

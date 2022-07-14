@@ -114,8 +114,22 @@ jobs:
     steps:
     - slack/notify:
         event: pass
-        channel: cicd-pipeline
-        template: success_tagged_deployment_1
+        channel: test-notification
+        custom: |
+            {
+              "blocks": [
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "plain_text",
+                      "text": "*This is a text notification*",
+                      "emoji": true
+                    }
+                  ]
+                }
+              ]
+            }
 
 workflows:
   default:

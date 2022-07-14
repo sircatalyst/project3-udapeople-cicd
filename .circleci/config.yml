@@ -73,9 +73,10 @@ jobs:
       - run:
           name: Analyze frontend
           command: |
-              cd frontend
-              npm install
-              npm audit --audit-level=critical
+            cd frontend
+            npm install
+            npm audit fix --force --audit-level=critical
+            npm audit --audit-level=critical
 
   scan-backend:
     docker:

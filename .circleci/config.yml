@@ -226,8 +226,7 @@ jobs:
 
             ansible-playbook -i inventory.txt configure-server.yml
 
-      - destroy-environment:
-          workflow_id: '${CIRCLE_WORKFLOW_ID}'
+      - destroy-environment
 
   run-migrations:
     docker:
@@ -305,8 +304,7 @@ jobs:
             - backend_ip.txt
       - revert-migrations
       # Here's where you will add some code to rollback on failure      
-      - destroy-environment:
-          workflow_id: '${CIRCLE_WORKFLOW_ID}'
+      - destroy-environment
    
 
    

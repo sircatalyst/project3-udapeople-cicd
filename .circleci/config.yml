@@ -51,6 +51,29 @@ commands:
             # Delete backend stack
             aws cloudformation delete-stack --stack-name udapeople-backend-<< parameters.Workflow_ID >>
             exit 1
+
+  revert-migrations:
+    description: Revert the last migration if successfully run in the current workflow
+    parameters:
+      # Add parameter here
+      Workflow_ID:
+        type: string
+        default: ${CIRCLE_WORKFLOW_ID:0:7}     
+    steps:
+      - run:
+          name: Revert migrations
+          # Add when this will run
+          when: on_fail
+          command: |
+            SUCCESS=$(curl --insecure  https://kvdb.io/QUtm9gL5qrSrMSXw5s2L1C/migration_<< parameters.Workflow_ID >>)
+            # Logic for reverting the database state
+            if (( $SUCCESS == 1 ));
+            then
+              cd ~/project/backend
+              npm install
+              npm run migration:revert
+            fi
+
 jobs:
   build-frontend:
     docker:
@@ -195,11 +218,6 @@ jobs:
           fingerprints: ["02:34:20:f6:3a:66:be:50:ea:01:bd:2a:d7:26:9f:86"]
       - attach_workspace:
           at: ~/
-      # - run:
-      #     name: Install dependencies
-      #     command: |
-      #       # Your code here
-      #       exit 1
       - run:
           name: Configure Server
           command: |
@@ -207,9 +225,90 @@ jobs:
             cat inventory.txt
 
             ansible-playbook -i inventory.txt configure-server.yml
-      - destroy-environment      
 
+      - destroy-environment:
+            workflow_id: '${CIRCLE_WORKFLOW_ID}'
 
+  run-migrations:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - attach_workspace:
+            at: ~/
+      - run:
+          name: Run migrations
+          command: |
+              cd backend
+              npm install
+              # Run and save the migration output
+              npm run migrations > migrations_dump.txt
+
+              echo
+              cat migrations_dump.txt
+              echo
+
+      - run:
+          name: Send migration status to kvdb.io OR memstash.io
+          command: |   
+              if grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt
+              then
+                  # If you are using memstash.io, generate the token "7933fe63-4687-4fa1-8426-aa25aa1730ec" on the website
+                  # curl -H "Content-Type: text/plain" -H "token: 7933fe63-4687-4fa1-8426-aa25aa1730ec" --request PUT --data "1" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID:0:7}
+                  # If you are using kvdb.io, generate the bucket ID "L9DmiGeD3T8insU64sWRFH" in your local terminal first
+                  curl https://kvdb.io/L9DmiGeD3T8insU64sWRFH/migration_${CIRCLE_WORKFLOW_ID:0:7}  -d '1'
+              fi
+     # Here's where you will add some code to rollback on failure      
+
+  deploy-frontend:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/
+      - install_awscli
+      - install_ansible
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update curl
+            apk add --update nodejs  
+            apk add --update npm
+
+      - run:
+          name: Get backend url
+          command: |
+            # your code here
+            export BACKEND_IP=$(aws ec2 describe-instances \
+              --filters Name=tag:Name,Values="backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --query 'Reservations[].Instances[].PublicIpAddress' \
+              --output text)
+            export API_URL="http://${BACKEND_IP}:3030"
+            echo "API_URL = ${API_URL}"
+            echo API_URL="http://${BACKEND_IP}:3030" >> frontend/.env
+            echo $BACKEND_IP > ~/backend_ip.txt
+            cat frontend/.env
+
+      - run:
+          name: Deploy frontend objects
+          command: |
+            cd frontend
+            npm install
+            npm run build
+            tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:7}".tar.gz dist
+
+            aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - backend_ip.txt
+      - revert-migrations
+      # Here's where you will add some code to rollback on failure      
+      - destroy-environment
+   
+
+   
   notify_on_success:
     docker:
     - image: cimg/base:stable
@@ -253,6 +352,10 @@ workflows:
               only: [master]
       - configure-infrastructure:
           requires: [deploy-infrastructure]
+      - run-migrations:
+          requires: [configure-infrastructure]
+      - deploy-frontend:
+          requires: [run-migrations]
           
       - notify_on_success:
           requires:

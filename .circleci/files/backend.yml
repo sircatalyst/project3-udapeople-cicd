@@ -9,7 +9,7 @@ Parameters:
 Resources:
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
-    Propertiesok:
+    Properties:
       GroupName: !Sub UdaPeople-${ID}
       GroupDescription: Allow port 22 and port 3030.
       SecurityGroupIngress:

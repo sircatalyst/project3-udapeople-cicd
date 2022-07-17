@@ -281,6 +281,8 @@ jobs:
             apk add --update curl
             apk add --update nodejs  
             apk add --update npm
+            apk add --update ansible
+            pip3 install awscli
 
       - run:
           name: Get backend url

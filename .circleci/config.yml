@@ -453,7 +453,7 @@ jobs:
               aws cloudformation delete-stack --stack-name "frontend-${previousWorkflowID}"
               echo "Successfully deleted previous resources"
             else 
-              echo ""------------Error deleting resourcing"------------"
+              echo "------------Error deleting resources"------------"
             fi
       - revert-migrations
       - destroy-environment

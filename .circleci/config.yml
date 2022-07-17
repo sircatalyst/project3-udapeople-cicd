@@ -50,7 +50,6 @@ commands:
 
             # Delete backend stack
             aws cloudformation delete-stack --stack-name udapeople-backend-<< parameters.Workflow_ID >>
-            exit 1
 
   revert-migrations:
     description: Revert the last migration if successfully run in the current workflow
@@ -233,8 +232,9 @@ jobs:
       - image: circleci/node:13.8.0
     steps:
       - checkout
+      - aws-cli/setup
       - attach_workspace:
-            at: ~/
+          at: ~/
       - run:
           name: Run migrations
           command: |

@@ -316,21 +316,6 @@ jobs:
       - destroy-environment
 
   deploy-backend:
-    # docker:
-    #   - image: cimg/base:stable
-    # steps:
-    #   - checkout
-    #   - install_awscli
-    #   - install_ansible
-    #   - add_ssh_keys:
-    #       fingerprints: ["02:34:20:f6:3a:66:be:50:ea:01:bd:2a:d7:26:9f:86"]
-    #   - attach_workspace:
-    #       at: ~/
-    #   - run:
-    #       name: Deploy backend
-    #       command: |
-    #         # your code here
-      # Here's where you will add some code to rollback on failure  
     docker:
       - image: python:3.9.1-alpine3.12
     steps:
@@ -364,6 +349,46 @@ jobs:
       # Here's where you will add some code to rollback on failure
       - revert-migrations
       - destroy-environment
+
+  smoke-test:
+    docker:
+      - image: python:3.9.1-alpine3.12
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update curl nodejs npm
+            pip3 install awscli
+      - run:
+          name: Backend smoke test
+          command: |
+            export BACKEND_IP=$(cat ~/backend_ip.txt)
+            export API_URL="http://${BACKEND_IP}:3030"
+            echo "${API_URL}"
+            if curl "${API_URL}/api/status" | grep "ok"
+            then
+                return 0
+            else
+                return 1
+            fi
+      - run:
+          name: Frontend smoke test.
+          command: |
+            URL="http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-east-1.amazonaws.com/#/employees"            
+            echo ${URL} 
+            if curl -s ${URL} | grep "Welcome"
+            then
+                # Change this to 0 after the job fails
+              return 0
+            else
+              return 1
+            fi
+      - destroy-environment
+      - revert-migrations
+      # Here's where you will add some code to rollback on failure  
 
   notify_on_success:
     docker:
@@ -414,6 +439,8 @@ workflows:
           requires: [run-migrations]
       - deploy-backend:
           requires: [run-migrations]
+      - smoke-test:
+          requires: [deploy-backend, deploy-frontend]
 
       - notify_on_success:
           requires:

@@ -1,2 +1,2 @@
 [URL01]=https://github.com/sircatalyst/project3-udapeople-cicd
-[URL02]=http://udapeople-54ba268.s3-website-us-east-1.amazonaws.com/#/employees
+[URL02]=http://udapeople-22526f9.s3-website-us-east-1.amazonaws.com/#/employees
